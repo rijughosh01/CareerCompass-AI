@@ -4,15 +4,14 @@ from typing import Dict, Any, List, Optional
 from app.services.career_data import CAREER_KNOWLEDGE_BASE
 from app.core.config import settings
 
-# Optional Google Gemini LLM Integration
-gemini_model = None
+# Google Gemini Modern GenAI Client Integration
+genai_client = None
 if settings.GEMINI_API_KEY:
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+        from google import genai
+        genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
     except Exception as e:
-        gemini_model = None
+        genai_client = None
 
 
 # Detailed Project Blueprints for Top Domains
@@ -272,10 +271,11 @@ def normalize_role_name(query: str, default_career: str = "Machine Learning Engi
 
 def call_gemini_llm(prompt: str, user_profile: Dict[str, Any]) -> Optional[str]:
     """
-    Invokes Google Gemini 1.5 Flash with RAG-style career knowledge base injection.
+    Invokes Google Gemini with RAG-style career knowledge base injection.
     Grounded in the user's profile + top career knowledge from CAREER_KNOWLEDGE_BASE.
+    Uses multi-model failover (gemini-3.1-flash-lite -> gemini-3.5-flash -> gemini-3.7-flash).
     """
-    if not gemini_model:
+    if not genai_client:
         return None
 
     name = user_profile.get("full_name", "Student")
@@ -330,12 +330,18 @@ def call_gemini_llm(prompt: str, user_profile: Dict[str, Any]) -> Optional[str]:
     )
 
     full_prompt = f"{system_instruction}\n\nStudent Query: {prompt}\n\nResponse:"
-    try:
-        response = gemini_model.generate_content(full_prompt)
-        if response and response.text:
-            return response.text.strip()
-    except Exception as e:
-        pass
+
+    models_to_try = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.7-flash"]
+    for model_name in models_to_try:
+        try:
+            response = genai_client.models.generate_content(
+                model=model_name,
+                contents=full_prompt
+            )
+            if response and response.text:
+                return response.text.strip()
+        except Exception:
+            continue
     return None
 
 

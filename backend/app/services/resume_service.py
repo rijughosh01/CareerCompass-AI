@@ -170,6 +170,33 @@ def analyze_resume_text(text: str, target_career: str = "Machine Learning Engine
         "Ensure certifications and education dates are formatted consistently for ATS parsers."
     ]
 
+    # Attempt Gemini AI-powered personalized ATS recommendations
+    try:
+        from app.core.config import settings
+        if settings.GEMINI_API_KEY:
+            from google import genai
+            ai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            ai_prompt = (
+                f"You are an expert technical recruiter and ATS resume optimizer. "
+                f"Review this resume extract for a student targeting '{target_career}':\n"
+                f"\"{lower_text[:700]}\"\n\n"
+                f"Provide exactly 3 concise, high-impact bulleted recommendations to boost their ATS match score and recruiter appeal. "
+                f"Start each bullet with an action verb."
+            )
+            for m in ["gemini-3.1-flash-lite", "gemini-3.5-flash"]:
+                try:
+                    resp = ai_client.models.generate_content(model=m, contents=ai_prompt)
+                    if resp and resp.text:
+                        lines = [line.strip().lstrip("*-•").strip() for line in resp.text.split("\n") if line.strip() and not line.strip().startswith("#")]
+                        bullets = [b for b in lines if len(b) > 15][:3]
+                        if len(bullets) >= 2:
+                            recommendations = bullets
+                            break
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
     # Find matching careers
     matching_careers = []
     for career_name, data in CAREER_KNOWLEDGE_BASE.items():
