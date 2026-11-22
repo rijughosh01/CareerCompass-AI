@@ -48,9 +48,10 @@ export interface CareerPredictionItem {
 export interface AssessmentResult {
   id: number;
   created_at: string;
-  top_prediction: string;
+  top_prediction?: string;
+  top_career?: string;
   predictions: CareerPredictionItem[];
-  profile_snapshot: StudentProfile;
+  profile_snapshot?: StudentProfile;
 }
 
 export interface SkillGapItem {

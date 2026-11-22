@@ -1,19 +1,24 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Dict, Any
+import structlog
+
 from app.database import get_db
 from app.models import User, StudentProfile, Assessment
 from app.schemas import AdminStatsResponse
 from app.core.security import get_current_admin
 from app.services.ml_service import ml_service
 
+logger = structlog.get_logger("careercompass.admin")
 router = APIRouter(prefix="/admin", tags=["Administrator Operations"])
 
 
 @router.get("/dashboard", response_model=AdminStatsResponse)
 @router.get("/stats", response_model=AdminStatsResponse)
 def get_admin_dashboard(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
+    logger.info("admin_accessed_dashboard", admin_id=current_admin.id, email=current_admin.email)
+
     total_students = db.query(User).filter(User.role == "student").count()
     total_assessments = db.query(Assessment).count()
 
@@ -72,11 +77,20 @@ def get_admin_dashboard(current_admin: User = Depends(get_current_admin), db: Se
 
 
 @router.get("/students", response_model=List[Dict[str, Any]])
-def get_all_students(current_admin: User = Depends(get_current_admin), db: Session = Depends(get_db)):
+def get_all_students(
+    skip: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(50, ge=1, le=200, description="Page size limit"),
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    logger.info("admin_listed_students", admin_id=current_admin.id, skip=skip, limit=limit)
+
     students = (
         db.query(User)
         .filter(User.role == "student")
         .order_by(User.created_at.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 

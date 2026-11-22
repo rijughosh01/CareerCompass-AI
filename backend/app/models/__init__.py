@@ -27,7 +27,7 @@ class StudentProfile(Base):
     __tablename__ = "student_profiles"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
     age = Column(Integer, nullable=True)
     gender = Column(String(50), nullable=True)
@@ -57,9 +57,9 @@ class Assessment(Base):
     __tablename__ = "assessments"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     input_snapshot = Column(JSON, nullable=False)
-    top_career = Column(String(100), nullable=False)
+    top_career = Column(String(100), index=True, nullable=False)
     top_score = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -72,7 +72,7 @@ class PredictionDetail(Base):
     __tablename__ = "prediction_details"
 
     id = Column(Integer, primary_key=True, index=True)
-    assessment_id = Column(Integer, ForeignKey("assessments.id"), nullable=False)
+    assessment_id = Column(Integer, ForeignKey("assessments.id"), index=True, nullable=False)
     career = Column(String(100), nullable=False)
     score = Column(Float, nullable=False)
     rank = Column(Integer, nullable=False)
@@ -86,7 +86,7 @@ class ResumeRecord(Base):
     __tablename__ = "resume_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     filename = Column(String(255), nullable=False)
     extracted_text = Column(Text, nullable=True)
     analysis_data = Column(JSON, nullable=False)
@@ -100,7 +100,7 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     sender = Column(String(20), nullable=False)  # 'user' | 'assistant'
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

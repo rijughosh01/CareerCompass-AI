@@ -55,6 +55,12 @@ def submit_assessment(
 
     top_prediction = predictions[0]
     logger.info(
+        "prediction_made",
+        user_id=current_user.id,
+        top_career=top_prediction["career"],
+        top_score=top_prediction["prediction_score"],
+    )
+    logger.info(
         "assessment_submitted",
         user_id=current_user.id,
         top_career=top_prediction["career"],

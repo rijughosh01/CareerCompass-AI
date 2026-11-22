@@ -6,6 +6,7 @@ import time
 import structlog
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -29,6 +30,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+        # Enforce HTTPS HSTS header in production
+        if getattr(settings, "ENVIRONMENT", "development") == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+
         # Remove server header without .pop() (not supported on MutableHeaders)
         try:
             del response.headers["server"]

@@ -193,11 +193,15 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # ---------------------------------------------------------------------------
 # Middleware (order matters: outermost middleware wraps innermost)
 # ---------------------------------------------------------------------------
+cors_origins = list(settings.CORS_ORIGINS)
+if getattr(settings, "ENVIRONMENT", "development") == "production" and "*" in cors_origins:
+    cors_origins = [o for o in cors_origins if o != "*"]
+
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
@@ -247,6 +251,8 @@ def health_check():
     db_ok = _check_db()
     return {
         "status": "healthy" if db_ok and ml_service.model_loaded else "degraded",
+        "ml_model_loaded": ml_service.model_loaded,
+        "db_connected": db_ok,
         "version": "2.0.0",
         "project": settings.PROJECT_NAME,
         "ml_model": {

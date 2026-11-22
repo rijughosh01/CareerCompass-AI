@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 from app.database import get_db
 from app.models import User, ResumeRecord
 from app.schemas import ResumeAnalysisResponse
 from app.core.security import get_current_user
+from app.core.sanitizer import sanitize_text
 from app.services.resume_service import extract_text_from_file, analyze_resume_text
 
 router = APIRouter(prefix="/resumes", tags=["Resume Analysis"])
@@ -34,12 +35,14 @@ async def analyse_resume(
             )
         extracted_text = extract_text_from_file(file_bytes, filename)
     elif raw_text:
-        extracted_text = raw_text
+        extracted_text = sanitize_text(raw_text)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Please upload a PDF/DOCX resume file or provide resume text."
         )
+
+    target_career = sanitize_text(target_career) or "Machine Learning Engineer"
 
     if not extracted_text or len(extracted_text.strip()) < 20:
         raise HTTPException(
@@ -70,12 +73,18 @@ async def analyse_resume(
 
 
 @router.get("/history", response_model=List[Dict[str, Any]])
-def get_resume_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_resume_history(
+    skip: int = Query(0, ge=0, description="Offset"),
+    limit: int = Query(10, ge=1, le=50, description="Page size"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     records = (
         db.query(ResumeRecord)
         .filter(ResumeRecord.user_id == current_user.id)
         .order_by(ResumeRecord.created_at.desc())
-        .limit(10)
+        .offset(skip)
+        .limit(limit)
         .all()
     )
     return [

@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models import User, StudentProfile
 from app.schemas import StudentProfileResponse, StudentProfileUpdate
 from app.core.security import get_current_user
+from app.core.sanitizer import sanitize_dict
 
 router = APIRouter(prefix="/students", tags=["Student Profiles"])
 
@@ -30,7 +31,7 @@ def update_profile(profile_data: StudentProfileUpdate, current_user: User = Depe
         profile = StudentProfile(user_id=current_user.id, full_name=current_user.full_name)
         db.add(profile)
 
-    update_dict = profile_data.dict(exclude_unset=True)
+    update_dict = sanitize_dict(profile_data.dict(exclude_unset=True))
     for field, value in update_dict.items():
         setattr(profile, field, value)
 

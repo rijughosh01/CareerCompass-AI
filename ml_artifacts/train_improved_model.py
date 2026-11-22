@@ -100,10 +100,22 @@ scaler = StandardScaler()
 num_scaled = scaler.fit_transform(df[NUM_COLS].values)
 num_df = pd.DataFrame(num_scaled, columns=NUM_COLS)
 
-# TF-IDF on combined text
-tfidf = TfidfVectorizer(max_features=300, ngram_range=(1, 2), min_df=2)
-text_features = tfidf.fit_transform(df["_combined_text"]).toarray()
-text_df = pd.DataFrame(text_features, columns=[f"tfidf_{i}" for i in range(text_features.shape[1])])
+# Dense Semantic Embeddings via SentenceTransformer ('all-MiniLM-L6-v2')
+# (Biggest gain: encodes semantic meaning of technical skills into dense 384-d vectors)
+use_sentence_transformers = False
+try:
+    from sentence_transformers import SentenceTransformer
+    print("  Generating semantic embeddings with SentenceTransformer('all-MiniLM-L6-v2')...")
+    st_model = SentenceTransformer("all-MiniLM-L6-v2")
+    skill_embeddings = st_model.encode(df["Technical_Skills"].tolist(), show_progress_bar=True)
+    text_df = pd.DataFrame(skill_embeddings, columns=[f"st_emb_{i}" for i in range(skill_embeddings.shape[1])])
+    use_sentence_transformers = True
+    print(f"  Sentence embeddings generated: {text_df.shape}")
+except Exception as e:
+    print(f"  SentenceTransformer fallback to TF-IDF n-grams ({e})...")
+    tfidf = TfidfVectorizer(max_features=300, ngram_range=(1, 2), min_df=2)
+    text_features = tfidf.fit_transform(df["_combined_text"]).toarray()
+    text_df = pd.DataFrame(text_features, columns=[f"tfidf_{i}" for i in range(text_features.shape[1])])
 
 # Final feature matrix
 X = pd.concat([num_df.reset_index(drop=True),

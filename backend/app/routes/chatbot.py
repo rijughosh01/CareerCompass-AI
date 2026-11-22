@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import datetime
@@ -8,7 +8,9 @@ from app.database import get_db
 from app.models import User, StudentProfile, ChatMessage, Assessment
 from app.schemas import ChatMessageRequest, ChatMessageResponse
 from app.core.security import get_current_user
+from app.core.sanitizer import sanitize_text
 from app.services.chatbot_service import get_chatbot_response
+from app.services.rag_service import retrieve_relevant_career_context
 
 router = APIRouter(prefix="/chatbot", tags=["AI Career Assistant"])
 
@@ -21,11 +23,14 @@ def send_chat_message(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Sanitize user input to prevent XSS / HTML injection
+    cleaned_message = sanitize_text(msg_data.message)
+
     # Store user message
     user_msg = ChatMessage(
         user_id=current_user.id,
         sender="user",
-        content=msg_data.message
+        content=cleaned_message
     )
     db.add(user_msg)
 
@@ -37,6 +42,10 @@ def send_chat_message(
         .order_by(Assessment.created_at.desc())
         .first()
     )
+
+    # Retrieve semantically relevant career context via RAG vector index
+    rag_matches = retrieve_relevant_career_context(cleaned_message, top_k=2)
+
     profile_dict = {
         "full_name": current_user.full_name or "Student",
         "email": current_user.email,
@@ -50,10 +59,11 @@ def send_chat_message(
         "preferred_work_style": profile.preferred_work_style if profile else "Hybrid",
         "latest_top_career": latest_assessment.top_career if latest_assessment else "Machine Learning Engineer",
         "latest_top_score": latest_assessment.top_score if latest_assessment else 95.0,
+        "rag_context": rag_matches,
     }
 
     # Generate grounded response
-    bot_reply_text = get_chatbot_response(msg_data.message, profile_dict)
+    bot_reply_text = get_chatbot_response(cleaned_message, profile_dict)
 
     # Store assistant message
     bot_msg = ChatMessage(
@@ -84,6 +94,8 @@ def clear_chat_history(
 
 @router.get("/history", response_model=List[Dict[str, Any]])
 def get_chat_history(
+    skip: int = Query(0, ge=0, description="Offset"),
+    limit: int = Query(50, ge=1, le=200, description="Page limit"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -91,7 +103,8 @@ def get_chat_history(
         db.query(ChatMessage)
         .filter(ChatMessage.user_id == current_user.id)
         .order_by(ChatMessage.created_at.asc())
-        .limit(50)
+        .offset(skip)
+        .limit(limit)
         .all()
     )
     return [
