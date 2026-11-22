@@ -1,13 +1,16 @@
 # CareerCompass AI 🧭
-### AI-Powered Career Guidance and Recommendation System
+### Production-Grade AI Career Guidance & Recommendation System
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/Frontend-React_18_TypeScript-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_5.4-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3.4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![XGBoost](https://img.shields.io/badge/ML_Engine-XGBoost_89.8%25_Acc-FF6F00?style=flat-square&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io)
+[![XGBoost](https://img.shields.io/badge/ML_Engine-Stacking_Ensemble-FF6F00?style=flat-square&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io)
+[![Pytest Tests](https://img.shields.io/badge/Backend_Tests-25%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](backend/tests)
+[![Vitest Tests](https://img.shields.io/badge/Frontend_Tests-14%20Passed-brightgreen?style=flat-square&logo=vitest&logoColor=white)](frontend/src/__tests__)
+[![Prometheus](https://img.shields.io/badge/Telemetry-Prometheus%20Metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)](backend/app/main.py)
+[![Security](https://img.shields.io/badge/Security-CSP%20%2B%20SlowAPI-blue?style=flat-square&logo=shield)](backend/app/middleware/security.py)
 [![Python](https://img.shields.io/badge/Python-3.10_--_3.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy_2.0-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 ---
@@ -160,37 +163,53 @@ Trained and evaluated on an 80/20 stratified split (12,000 training rows, 3,000 
 flowchart TD
     User["Student / Administrator Browser"]
     
-    subgraph Frontend["React 18 + TypeScript + Vite"]
-        UI["Tailwind CSS UI Components"]
-        AuthContext["Auth Context (JWT)"]
-        Axios["Axios API Client"]
-        Recharts["Recharts Telemetry"]
+    subgraph Frontend["Frontend Client (React 18 + Vite + TypeScript)"]
+        UI["Tailwind CSS 3.4 Responsive Views"]
+        CodeSplit["React.lazy Route Code-Splitting"]
+        Zustand["Zustand App Store (Global State)"]
+        ReactQuery["TanStack React Query (Server State & Cache)"]
+        Axios["Axios Client (JWT Interceptor)"]
+        Recharts["Recharts Telemetry Visualizers"]
     end
 
-    subgraph Backend["FastAPI REST Application"]
-        Router["API Gateway / Routers"]
-        Security["Security (Bcrypt + JWT)"]
-        MLService["ML Inference Engine"]
-        SkillService["Skill Gap Service"]
-        ResumeService["Resume ATS Parser"]
-        ChatService["AI Counselor Service"]
+    subgraph Middleware["Defense-in-Depth Middleware Pipeline"]
+        Limiter["SlowAPI Rate Limiter (Brute-Force Guard)"]
+        SecHeaders["SecurityHeaders (CSP, HSTS, X-Frame-Options)"]
+        Sanitizer["Bleach Input Sanitizer (XSS Mitigation)"]
+        ReqLog["RequestLogger (Structlog + Correlation IDs)"]
     end
 
-    subgraph Storage["Persistence & ML Assets"]
-        DB[(PostgreSQL / SQLite)]
-        ModelArtifact["XGBoost Model Bundle (.joblib)"]
+    subgraph Backend["FastAPI High-Performance Application Core"]
+        Router["API Gateway (/api/v1 Routers)"]
+        AuthService["Auth & Security (Bcrypt + JWT + zxcvbn)"]
+        MLService["ML Prediction Engine (Multi-Class Stacking)"]
+        RAGService["RAG Vector Engine (Knowledge Base Index)"]
+        GeminiLLM["Google Gemini 1.5 Flash Counselor"]
+        ResumeService["Resume ATS Extraction & Matcher"]
+        Telemetry["Prometheus Metrics & Sentry Observer"]
+    end
+
+    subgraph Storage["Data Persistence & Caching Tier"]
+        DB[(SQLAlchemy ORM - SQLite / PostgreSQL)]
+        CacheLayer["Cache Layer (In-Memory / Redis)"]
+        MLArtifacts["ML Model Pipeline (.joblib Bundle)"]
     end
 
     User <--> UI
-    UI <--> AuthContext
-    UI <--> Axios
-    Axios <--> Router
-    Router <--> Security
+    UI --> CodeSplit
+    UI <--> Zustand
+    UI <--> ReactQuery
+    ReactQuery <--> Axios
+    Axios <--> Middleware
+    Middleware <--> Router
+    Router <--> AuthService
     Router <--> MLService
-    Router <--> SkillService
+    Router <--> RAGService
+    RAGService <--> GeminiLLM
     Router <--> ResumeService
-    Router <--> ChatService
-    MLService <--> ModelArtifact
+    Router <--> Telemetry
+    MLService <--> MLArtifacts
+    Router <--> CacheLayer
     Router <--> DB
 ```
 
@@ -203,37 +222,56 @@ CareerCompass AI/
 ├── backend/                                  # FastAPI Backend Application
 │   ├── app/
 │   │   ├── core/
-│   │   │   ├── config.py                     # Pydantic environment settings
-│   │   │   └── security.py                   # Password hashing & JWT token handling
+│   │   │   ├── config.py                     # Pydantic settings & observability config
+│   │   │   ├── security.py                   # Password hashing & JWT token handling
+│   │   │   └── sanitizer.py                  # Bleach input sanitization & XSS guard
+│   │   ├── middleware/
+│   │   │   ├── rate_limit.py                 # SlowAPI rate limiting singleton
+│   │   │   └── security.py                   # SecurityHeaders (CSP, HSTS) & RequestLogging
 │   │   ├── database.py                       # SQLAlchemy engine & session maker
+│   │   ├── async_database.py                 # Async SQLAlchemy engine (asyncpg/aiosqlite)
 │   │   ├── models/
-│   │   │   └── __init__.py                   # User, Profile, Assessment, Resume, Chat models
+│   │   │   └── __init__.py                   # User, Profile, Assessment, Resume, Chat models (Indexed)
 │   │   ├── schemas/
-│   │   │   └── __init__.py                   # Pydantic schemas with case-normalizing validators
+│   │   │   └── __init__.py                   # Pydantic schemas with validation & normalization
 │   │   ├── services/
 │   │   │   ├── career_data.py                # 22-class career catalog, milestones & skills
-│   │   │   ├── ml_service.py                 # XGBoost inference pipeline loader
+│   │   │   ├── cache_service.py              # In-memory & Redis cache manager with TTL
+│   │   │   ├── ml_service.py                 # XGBoost / Stacking inference pipeline loader
+│   │   │   ├── rag_service.py                # Dense vector retrieval over career knowledge base
 │   │   │   ├── skill_service.py              # Skill coverage & gap analyzer
 │   │   │   ├── roadmap_service.py            # 3-stage milestone roadmap synthesizer
 │   │   │   ├── resume_service.py             # PDF/DOCX/Text ATS scoring engine
-│   │   │   └── chatbot_service.py            # Grounded AI career counselor generator
+│   │   │   └── chatbot_service.py            # Grounded AI counselor (Gemini 1.5 Flash + RAG)
 │   │   ├── routes/
-│   │   │   ├── auth.py                       # Registration, Login, Current User
-│   │   │   ├── students.py                   # Profile retrieval and updates
-│   │   │   ├── assessments.py                # Assessment submission & history
-│   │   │   ├── careers.py                    # Career catalog & ad-hoc predictions
+│   │   │   ├── auth.py                       # Registration, Login (Rate Limited), Me
+│   │   │   ├── students.py                   # Profile retrieval and sanitized updates
+│   │   │   ├── assessments.py                # Assessment submission (cached, paginated)
+│   │   │   ├── careers.py                    # Career catalog (1-hr cached)
 │   │   │   ├── skills.py                     # Skill gap queries
 │   │   │   ├── roadmaps.py                   # Learning roadmaps
-│   │   │   ├── resumes.py                    # File & text resume analysis
-│   │   │   ├── chatbot.py                    # Chat messaging & history
-│   │   │   └── admin.py                      # Admin dashboard metrics & student list
-│   │   └── main.py                           # App entrypoint, CORS, seeding & lifecycle
+│   │   │   ├── resumes.py                    # File & text resume analysis (paginated)
+│   │   │   ├── chatbot.py                    # Chat messaging (RAG-grounded) & history
+│   │   │   └── admin.py                      # Admin KPIs, telemetry & paginated student list
+│   │   └── main.py                           # App entrypoint, Prometheus, Sentry, CORS, Health
+│   ├── tests/                                # 25-test Automated Pytest Suite
+│   │   ├── conftest.py                       # Test DB fixture, client, auth tokens
+│   │   ├── test_auth.py                      # Register, login, rate limit, zxcvbn tests
+│   │   ├── test_assessments.py               # Top 5 predictions, pagination, caching tests
+│   │   └── test_ml_service.py                # ML prediction pipeline unit tests
+│   ├── pytest.ini                            # Pytest configuration
 │   ├── .env.example                          # Environment variables template
 │   └── requirements.txt                      # Backend dependencies
-├── frontend/                                 # React + TypeScript + Vite Application
+├── frontend/                                 # React 18 + TypeScript + Vite Application
 │   ├── public/
 │   │   └── compass.svg                       # Application brand favicon
 │   ├── src/
+│   │   ├── __tests__/                        # 14-test Automated Vitest Suite
+│   │   │   ├── setup.ts                      # Jest-DOM matchers setup
+│   │   │   ├── LoginPage.test.tsx            # Form validation & login interaction tests
+│   │   │   └── api.test.ts                   # Axios interceptors & store tests
+│   │   ├── store/
+│   │   │   └── appStore.ts                   # Zustand global state (predictions & UI)
 │   │   ├── components/common/
 │   │   │   ├── Navbar.tsx                    # Public navigation header & user menu
 │   │   │   ├── Sidebar.tsx                   # Categorized workspace sidebar & drawer
@@ -251,7 +289,7 @@ CareerCompass AI/
 │   │   │   ├── StudentDashboard.tsx          # Readiness radar chart & top prediction
 │   │   │   ├── StudentProfile.tsx            # 19-attribute tabbed profile editor
 │   │   │   ├── CareerAssessment.tsx          # 4-step interactive assessment wizard
-│   │   │   ├── CareerPrediction.tsx          # Top 3-5 ranked predictions with charts
+│   │   │   ├── CareerPrediction.tsx          # Memoized CareerCard & React Query hooks
 │   │   │   ├── SkillGapAnalysis.tsx          # Skill coverage gauge & gap chips
 │   │   │   ├── CareerRoadmap.tsx             # 3-stage milestone roadmaps & courses
 │   │   │   ├── ResumeAnalysis.tsx            # PDF/DOCX upload & ATS score gauge
@@ -261,17 +299,18 @@ CareerCompass AI/
 │   │   │   └── api.ts                        # Axios instance with auth interceptors
 │   │   ├── types/
 │   │   │   └── index.ts                      # Strict TypeScript data models
-│   │   ├── App.tsx                           # Route configuration
+│   │   ├── App.tsx                           # React.lazy route code-splitting & QueryClient
 │   │   ├── index.css                         # Tailwind CSS & typography directives
 │   │   └── main.tsx                          # React DOM client entrypoint
-│   ├── package.json                          # Frontend dependencies & scripts
+│   ├── package.json                          # Frontend dependencies & test scripts
 │   ├── tsconfig.json                         # TypeScript configuration
-│   ├── vite.config.ts                        # Vite configuration with API proxy
+│   ├── vite.config.ts                        # Vite configuration with Vitest setup
 │   └── tailwind.config.js                    # Tailwind theme customization
 ├── ml_artifacts/                             # Serialized ML Artifacts & Notebook
 │   ├── CareerCompass_AI.ipynb                # Complete Google Colab / Jupyter Notebook
 │   ├── careercompass_final_model.joblib      # Trained XGBoost pipeline (89.8% accuracy)
-│   └── preprocessing_utils.py                # Standalone tokenizer & sklearn tag guards
+│   ├── preprocessing_utils.py                # Standalone tokenizer & sklearn tag guards
+│   └── train_improved_model.py               # Stacking ensemble + SMOTE + Optuna script
 ├── docs/                                     # Dataset & Model Evaluation Reports
 │   ├── Career_Path_Dataset_with_Career.csv   # 15,000-row synthetic student dataset
 │   ├── careercompass_classification_report.csv
