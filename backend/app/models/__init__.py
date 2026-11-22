@@ -21,6 +21,8 @@ class User(Base):
     assessments = relationship("Assessment", back_populates="user", cascade="all, delete-orphan")
     resumes = relationship("ResumeRecord", back_populates="user", cascade="all, delete-orphan")
     chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+    interview_sessions = relationship("InterviewSession", back_populates="user", cascade="all, delete-orphan")
+    roadmap_progress = relationship("RoadmapProgress", back_populates="user", cascade="all, delete-orphan")
 
 
 class StudentProfile(Base):
@@ -107,4 +109,53 @@ class ChatMessage(Base):
 
     # Relationship
     user = relationship("User", back_populates="chat_messages")
+
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    career = Column(String(100), nullable=False)
+    difficulty = Column(String(50), default="Mid-Level")  # 'Junior', 'Mid-Level', 'Senior'
+    status = Column(String(50), default="active")         # 'active', 'completed'
+    total_score = Column(Float, default=0.0)
+    questions_answered = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="interview_sessions")
+    exchanges = relationship("InterviewExchange", back_populates="session", cascade="all, delete-orphan")
+
+
+class InterviewExchange(Base):
+    __tablename__ = "interview_exchanges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("interview_sessions.id"), index=True, nullable=False)
+    question = Column(Text, nullable=False)
+    user_answer = Column(Text, nullable=True)
+    score = Column(Float, nullable=True)                  # 1 to 10
+    technical_accuracy = Column(Float, nullable=True)     # 1 to 10
+    communication_clarity = Column(Float, nullable=True)  # 1 to 10
+    feedback = Column(Text, nullable=True)
+    model_answer = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("InterviewSession", back_populates="exchanges")
+
+
+class RoadmapProgress(Base):
+    __tablename__ = "roadmap_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    career = Column(String(100), index=True, nullable=False)
+    stage = Column(String(50), nullable=False)           # 'Beginner', 'Intermediate', 'Advanced'
+    item_type = Column(String(50), default="skill")      # 'skill', 'project', 'course'
+    item_title = Column(String(255), nullable=False)
+    completed = Column(Boolean, default=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="roadmap_progress")
+
 

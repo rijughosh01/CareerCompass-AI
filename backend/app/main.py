@@ -36,6 +36,8 @@ from app.routes import (
     resumes,
     chatbot,
     admin,
+    interviews,
+    resume_builder,
 )
 
 # ---------------------------------------------------------------------------
@@ -231,6 +233,8 @@ app.include_router(roadmaps.router, prefix=settings.API_V1_STR)
 app.include_router(resumes.router, prefix=settings.API_V1_STR)
 app.include_router(chatbot.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(interviews.router, prefix=settings.API_V1_STR)
+app.include_router(resume_builder.router, prefix=settings.API_V1_STR)
 
 
 # ---------------------------------------------------------------------------

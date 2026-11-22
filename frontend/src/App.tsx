@@ -33,6 +33,12 @@ const CareerRoadmap = React.lazy(() =>
 const ResumeAnalysis = React.lazy(() =>
   import('./pages/ResumeAnalysis').then((m) => ({ default: m.ResumeAnalysis }))
 );
+const ResumeBuilder = React.lazy(() =>
+  import('./pages/ResumeBuilder').then((m) => ({ default: m.ResumeBuilder }))
+);
+const MockInterviewer = React.lazy(() =>
+  import('./pages/MockInterviewer').then((m) => ({ default: m.MockInterviewer }))
+);
 const AIChatAssistant = React.lazy(() =>
   import('./pages/AIChatAssistant').then((m) => ({ default: m.AIChatAssistant }))
 );
@@ -91,6 +97,8 @@ export default function App() {
                 <Route path="/skill-gap" element={<SkillGapAnalysis />} />
                 <Route path="/roadmap" element={<CareerRoadmap />} />
                 <Route path="/resume" element={<ResumeAnalysis />} />
+                <Route path="/resume-builder" element={<ResumeBuilder />} />
+                <Route path="/interview" element={<MockInterviewer />} />
                 <Route path="/chat" element={<AIChatAssistant />} />
 
                 {/* Admin Hub */}

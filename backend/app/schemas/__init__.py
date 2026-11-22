@@ -229,3 +229,125 @@ class AdminStatsResponse(BaseModel):
     top_careers: List[Dict[str, Any]]
     recent_activity: List[Dict[str, Any]]
     system_health: Dict[str, Any]
+
+
+# ==========================================
+# MOCK INTERVIEW SCHEMAS
+# ==========================================
+class InterviewStartRequest(BaseModel):
+    career: str = "Machine Learning Engineer"
+    difficulty: Optional[str] = "Mid-Level"  # 'Junior', 'Mid-Level', 'Senior'
+
+
+class InterviewAnswerRequest(BaseModel):
+    session_id: int
+    exchange_id: int
+    answer: str = Field(..., min_length=2, description="Candidate answer to the interview question")
+
+
+class InterviewExchangeResponse(BaseModel):
+    id: int
+    session_id: int
+    question: str
+    user_answer: Optional[str] = None
+    score: Optional[float] = None
+    technical_accuracy: Optional[float] = None
+    communication_clarity: Optional[float] = None
+    feedback: Optional[str] = None
+    model_answer: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class InterviewSessionResponse(BaseModel):
+    id: int
+    user_id: int
+    career: str
+    difficulty: str
+    status: str
+    total_score: float
+    questions_answered: int
+    created_at: datetime
+    exchanges: List[InterviewExchangeResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+# ==========================================
+# RESUME BUILDER SCHEMAS
+# ==========================================
+class ResumeWorkItem(BaseModel):
+    company: str
+    role: str
+    duration: str
+    location: Optional[str] = ""
+    bullets: List[str] = []
+
+
+class ResumeProjectItem(BaseModel):
+    title: str
+    tech_stack: str
+    link: Optional[str] = ""
+    bullets: List[str] = []
+
+
+class ResumeEducationItem(BaseModel):
+    degree: str
+    institution: str
+    year: str
+    score: Optional[str] = ""
+
+
+class ResumeGenerateRequest(BaseModel):
+    target_career: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    linkedin: Optional[str] = None
+    github: Optional[str] = None
+    portfolio: Optional[str] = None
+    raw_experience: Optional[str] = None
+    raw_projects: Optional[str] = None
+
+
+class ResumeDataResponse(BaseModel):
+    full_name: str
+    email: str
+    phone: str
+    location: str
+    linkedin: str
+    github: str
+    portfolio: str
+    target_career: str
+    summary: str
+    skills_grouped: Dict[str, List[str]]
+    experience: List[ResumeWorkItem]
+    projects: List[ResumeProjectItem]
+    education: List[ResumeEducationItem]
+    certifications: List[str]
+
+
+# ==========================================
+# ROADMAP PROGRESS SCHEMAS
+# ==========================================
+class RoadmapProgressToggleRequest(BaseModel):
+    career: str
+    stage: str
+    item_type: str = "skill"  # 'skill' | 'project' | 'course'
+    item_title: str
+    completed: bool = True
+
+
+class RoadmapProgressSummaryResponse(BaseModel):
+    career: str
+    completed_items: List[str]
+    total_items: int
+    completed_count: int
+    readiness_percentage: float
+    stage_readiness: Dict[str, float]
+    is_career_ready: bool
+

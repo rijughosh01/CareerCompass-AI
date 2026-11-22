@@ -6,7 +6,7 @@
 [![Vite](https://img.shields.io/badge/Bundler-Vite_5.4-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3.4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
 [![XGBoost](https://img.shields.io/badge/ML_Engine-Stacking_Ensemble-FF6F00?style=flat-square&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io)
-[![Pytest Tests](https://img.shields.io/badge/Backend_Tests-25%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](backend/tests)
+[![Pytest Tests](https://img.shields.io/badge/Backend_Tests-30%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](backend/tests)
 [![Vitest Tests](https://img.shields.io/badge/Frontend_Tests-14%20Passed-brightgreen?style=flat-square&logo=vitest&logoColor=white)](frontend/src/__tests__)
 [![Prometheus](https://img.shields.io/badge/Telemetry-Prometheus%20Metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)](backend/app/main.py)
 [![Security](https://img.shields.io/badge/Security-CSP%20%2B%20SlowAPI-blue?style=flat-square&logo=shield)](backend/app/middleware/security.py)
@@ -48,34 +48,46 @@
 
 ## 🌟 Platform Core Features
 
-### 1. Multi-Class XGBoost Career Prediction Engine
+### 1. 🎙️ AI Technical Mock Interviewer (Flagship Feature)
+* **Tailored Scenario Prompts:** Generates role-specific questions for any career track (Machine Learning Engineer, Frontend, Backend, Cybersecurity, etc.) customized by seniority level (`Junior`, `Mid-Level`, `Senior`).
+* **Real-Time STAR Method Scoring:** Evaluates answers in real time on a 1–10 scale across **Technical Depth & Framework Accuracy** and **Communication Clarity & STAR Structure**.
+* **Voice Speech-to-Text Dictation:** Built-in Web Speech API microphone dictation allowing students to speak responses naturally with animated recording indicators.
+* **Actionable Coaching & Model Answers:** Delivers constructive coaching feedback and an expandable **Ideal Model Answer (STAR Method)** for every question.
+* **Session Persistence & History:** Saves full transcripts and score telemetry to review improvement over time.
+
+### 2. 📄 1-Click AI Resume Builder (Export ATS-Compliant PDF)
+* **Automated Profile Ingestion:** Pulls verified student credentials, academic background, technical skills, and target career alignment directly into an ATS structure.
+* **Gemini Recruiter Optimization:** Rewrites raw work experience and project descriptions using the high-impact recruiter formula: **Action Verb + Scope + Quantified Result** (XYZ formula).
+* **Single-Page ATS Layout:** Clean, minimalist single-column typography designed for flawless parsing by Taleo, Greenhouse, and Workday ATS bots.
+* **1-Click Print & PDF Export:** Instant `window.print()` formatting with `@media print` styling for pixel-perfect PDF export, plus 1-click clipboard plain text copying.
+
+### 3. 🏆 Interactive Learning Roadmap Progress Tracker
+* **Interactive Curriculum Checklist:** Transforms static 3-stage roadmaps (Beginner, Intermediate, Advanced) into interactive checkboxes for skills, projects, and verified courses.
+* **Real-Time Career Readiness Score (%):** Persistent database tracking that recalculates the student's readiness percentage as milestones are completed.
+* **Career Ready Certificate Credential:** Automatically unlocks an official verified Certificate badge with verification ID and completion metadata when readiness milestones are achieved.
+
+### 4. Multi-Class XGBoost Career Prediction Engine
 * Classifies student profiles across **22 distinct career specializations**.
 * Produces ranked **Top 3 to 5 matching careers** with probability-derived match scores (0–100%).
 * Provides tailored, grounded explanations detailing *why* each role fits the student's background.
 
-### 2. Dynamic Skill Gap Analyzer
+### 5. Dynamic Skill Gap Analyzer
 * Select any target career (or default to the top prediction) to benchmark current skills against industry prerequisites.
 * Displays a **circular match gauge (%)**, side-by-side chips of **Acquired Skills vs. Missing Skills**, and prioritized recommendations.
 
-### 3. Structured 3-Stage Learning Roadmaps
-* **Beginner Stage:** Syntax, foundational principles, and core setup.
-* **Intermediate Stage:** Frameworks, toolchains, system design, and practical portfolio apps.
-* **Advanced Stage:** Scalability, cloud deployment, optimization, and capstone projects.
-* Direct resource links to courses on **Coursera, edX, deeplearning.ai, Udemy, and freeCodeCamp**.
-
-### 4. ATS Resume Scanner & Scorer
+### 6. ATS Resume Scanner & Scorer
 * Multi-format parser supporting **PDF, DOCX, and pasted text**.
 * Automated **0–100 ATS Score** evaluating keyword density, technical skill extraction, strengths, red flags, and optimization recommendations.
 
-### 5. 24/7 AI Career Counselor Chatbot
-* Real-time conversational interface grounded in student profile data, previous assessment outcomes, and industry requirements.
+### 7. 24/7 AI Career Counselor Chatbot
+* Real-time conversational interface powered by Google Gemini, grounded in student profile data, previous assessment outcomes, and industry requirements.
 * Fast-access suggested prompts covering interview prep, portfolio guidance, and role transitions.
 
-### 6. Interactive Student Dashboard
+### 8. Interactive Student Dashboard
 * Recharts **Readiness Radar Chart** evaluating Technical Core, Soft Skills, Academic Merit, Specialization, and Work Readiness.
 * Quick-action launchpads and profile completeness tracking.
 
-### 7. Administrator Operations & Telemetry
+### 9. Administrator Operations & Telemetry
 * Cohort analytics with Recharts **Distribution Bar Charts** of student career preferences.
 * Live platform activity feed and searchable student directory with role management.
 
@@ -441,6 +453,21 @@ All API routes are served under `/api` (configured via `settings.API_V1_STR`).
 |---|---|---|---|---|
 | `GET` | `/api/skills/gap` | Authenticated | `?career=Machine+Learning+Engineer` | Calculate skill coverage & missing skills |
 | `GET` | `/api/roadmaps` | Authenticated | `?career=Machine+Learning+Engineer` | Fetch 3-stage milestone learning roadmap |
+| `GET` | `/api/roadmaps/progress` | Authenticated | `?career=Machine+Learning+Engineer` | Retrieve checklist progress & readiness score (%) |
+| `POST` | `/api/roadmaps/progress/toggle` | Authenticated | `RoadmapProgressToggleRequest` | Toggle skill, project, or course completion |
+
+### AI Technical Mock Interviewer (`/api/interviews`)
+| Method | Endpoint | Access | Request Body | Description |
+|---|---|---|---|---|
+| `POST` | `/api/interviews/start` | Authenticated | `{career, difficulty}` | Initiate mock interview & generate Q1 |
+| `POST` | `/api/interviews/evaluate` | Authenticated | `{session_id, exchange_id, answer}` | Evaluate with STAR rubric & generate next question |
+| `GET` | `/api/interviews/history` | Authenticated | None | Retrieve user's completed interview sessions |
+| `GET` | `/api/interviews/{id}` | Authenticated | None | Retrieve transcript & detailed evaluation breakdown |
+
+### 1-Click AI Resume Builder (`/api/resumes/builder`)
+| Method | Endpoint | Access | Request Body | Description |
+|---|---|---|---|---|
+| `POST` | `/api/resumes/builder/generate` | Authenticated | `ResumeGenerateRequest` | Synthesize ATS single-page resume with STAR bullets |
 
 ### Resume ATS Scanner (`/api/resumes`)
 | Method | Endpoint | Access | Request / Form | Description |

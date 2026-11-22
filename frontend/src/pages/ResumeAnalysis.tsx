@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FileText,
   Upload,
@@ -9,6 +10,7 @@ import {
   FileCheck,
   X,
   Clock,
+  FileEdit,
 } from 'lucide-react';
 import api from '../services/api';
 import { ResumeAnalysisResult } from '../types';
@@ -125,6 +127,28 @@ export const ResumeAnalysis: React.FC = () => {
             )}
           </select>
         </div>
+      </div>
+
+      {/* 1-Click AI Resume Builder Callout */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-brand-600/10 via-indigo-500/10 to-emerald-500/10 border border-brand-500/20">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-sm">
+            <FileEdit className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Need a brand-new ATS resume from scratch?</h3>
+            <p className="text-xs text-slate-600">
+              Use our 1-Click AI Resume Builder to generate recruiter-grade bullets and export a single-page ATS PDF.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/resume-builder"
+          className="inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-500 shadow-sm transition-all shrink-0"
+        >
+          <span>Open AI Resume Builder</span>
+          <span>→</span>
+        </Link>
       </div>
 
       {/* Error Alert */}

@@ -14,6 +14,8 @@ import {
   Compass,
   Cpu,
   X,
+  Mic,
+  FileEdit,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -65,7 +67,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose })
       label: 'Growth & AI Tools',
       items: [
         { name: 'Learning Roadmap', path: '/roadmap', icon: Milestone },
+        { name: 'Mock Interviewer', path: '/interview', icon: Mic, badge: 'AI' },
         { name: 'Resume Analyzer', path: '/resume', icon: FileText },
+        { name: 'AI Resume Builder', path: '/resume-builder', icon: FileEdit, badge: 'ATS' },
         { name: 'AI Counselor', path: '/chat', icon: Bot, badge: 'AI' },
       ],
     },

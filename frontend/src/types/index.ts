@@ -122,3 +122,87 @@ export interface AdminStats {
   }[];
 }
 
+// ==========================================
+// MOCK INTERVIEW TYPES
+// ==========================================
+export interface InterviewExchange {
+  id: number;
+  session_id: number;
+  question: string;
+  user_answer?: string;
+  score?: number;
+  technical_accuracy?: number;
+  communication_clarity?: number;
+  feedback?: string;
+  model_answer?: string;
+  created_at: string;
+}
+
+export interface InterviewSession {
+  id: number;
+  user_id: number;
+  career: string;
+  difficulty: 'Junior' | 'Mid-Level' | 'Senior';
+  status: 'active' | 'completed';
+  total_score: number;
+  questions_answered: number;
+  created_at: string;
+  exchanges: InterviewExchange[];
+}
+
+// ==========================================
+// RESUME BUILDER TYPES
+// ==========================================
+export interface ResumeWorkItem {
+  company: string;
+  role: string;
+  duration: string;
+  location?: string;
+  bullets: string[];
+}
+
+export interface ResumeProjectItem {
+  title: string;
+  tech_stack: string;
+  link?: string;
+  bullets: string[];
+}
+
+export interface ResumeEducationItem {
+  degree: string;
+  institution: string;
+  year: string;
+  score?: string;
+}
+
+export interface ResumeData {
+  full_name: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+  github: string;
+  portfolio: string;
+  target_career: string;
+  summary: string;
+  skills_grouped: Record<string, string[]>;
+  experience: ResumeWorkItem[];
+  projects: ResumeProjectItem[];
+  education: ResumeEducationItem[];
+  certifications: string[];
+}
+
+// ==========================================
+// ROADMAP PROGRESS TYPES
+// ==========================================
+export interface RoadmapProgressSummary {
+  career: string;
+  completed_items: string[];
+  total_items: number;
+  completed_count: number;
+  readiness_percentage: number;
+  stage_readiness: Record<string, number>;
+  is_career_ready: boolean;
+}
+
+
