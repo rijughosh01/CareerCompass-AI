@@ -24,6 +24,11 @@ class Settings(BaseSettings):
         "http://localhost:3000",
     ]
 
+    # Monitoring & Environment
+    SENTRY_DSN: str = os.environ.get("SENTRY_DSN", "")
+    REDIS_URL: str = os.environ.get("REDIS_URL", "")
+    ENVIRONMENT: str = os.environ.get("ENVIRONMENT", "development")
+
     # ML Artifacts
     MODEL_PATH: str = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),

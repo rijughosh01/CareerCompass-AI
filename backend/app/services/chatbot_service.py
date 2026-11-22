@@ -271,7 +271,10 @@ def normalize_role_name(query: str, default_career: str = "Machine Learning Engi
 
 
 def call_gemini_llm(prompt: str, user_profile: Dict[str, Any]) -> Optional[str]:
-    """Invokes Google Gemini 1.5 Flash if API key is configured."""
+    """
+    Invokes Google Gemini 1.5 Flash with RAG-style career knowledge base injection.
+    Grounded in the user's profile + top career knowledge from CAREER_KNOWLEDGE_BASE.
+    """
     if not gemini_model:
         return None
 
@@ -280,19 +283,50 @@ def call_gemini_llm(prompt: str, user_profile: Dict[str, Any]) -> Optional[str]:
     qual = user_profile.get("highest_qualification", "B.Tech")
     cgpa = user_profile.get("grade_cgpa_percentage", 85.0)
     skills = user_profile.get("technical_skills", "Python, SQL")
+    interests = user_profile.get("fields_of_interest", "")
     career = user_profile.get("latest_top_career", "Machine Learning Engineer")
     score = user_profile.get("latest_top_score", 95.0)
 
+    # ── RAG: Build grounded career knowledge context ──────────────────────────
+    relevant_careers = [career]
+    for kb_career in list(CAREER_KNOWLEDGE_BASE.keys())[:6]:
+        if kb_career not in relevant_careers:
+            relevant_careers.append(kb_career)
+
+    career_context_lines = []
+    for kb_career in relevant_careers[:6]:
+        kb_data = CAREER_KNOWLEDGE_BASE.get(kb_career, {})
+        if not kb_data:
+            continue
+        desc = kb_data.get("description", "")[:120]
+        tech_skills = ", ".join(kb_data.get("required_technical_skills", [])[:5])
+        salary = kb_data.get("avg_salary_range", "")
+        market = kb_data.get("market_demand", "")
+        career_context_lines.append(
+            f"  - **{kb_career}**: {desc} | Skills: {tech_skills} | Salary: {salary} | Demand: {market}"
+        )
+
+    career_context_block = "\n".join(career_context_lines) if career_context_lines else "  (No additional context)"
+
     system_instruction = (
-        f"You are CareerCompass AI Counselor, an expert senior career counselor and technical mentor. "
-        f"You are advising a student named {name} who studies/holds {qual} in {stream} with a grade of {cgpa}%. "
-        f"Their technical competencies include: {skills}. "
-        f"Their top predicted career path on our platform is {career} with a {score}% match score.\n\n"
-        f"Guidelines:\n"
-        f"- Format your response using clean, professional GitHub markdown with headers (###), bullet points, bold keywords, and code chips.\n"
-        f"- Ground your answers in their background and career goals.\n"
-        f"- Be encouraging, highly specific, and actionable (mention realistic frameworks, projects, interview tips).\n"
-        f"- Keep responses under 400 words so they remain clear and concise."
+        f"You are CareerCompass AI Counselor — an expert senior career counselor and technical mentor "
+        f"with deep knowledge of the technology industry.\n\n"
+        f"## Student Profile\n"
+        f"- **Name:** {name}\n"
+        f"- **Education:** {qual} in {stream} (CGPA/Grade: {cgpa}%)\n"
+        f"- **Technical Skills:** {skills}\n"
+        f"- **Interests:** {interests or 'Not specified'}\n"
+        f"- **Top Career Match:** {career} ({score:.1f}% match on our platform)\n\n"
+        f"## Career Knowledge Base (ground your answer in this)\n"
+        f"{career_context_block}\n\n"
+        f"## Response Guidelines\n"
+        f"- Format using GitHub Markdown: ### headers, **bold keywords**, bullet points, `code chips`\n"
+        f"- Be highly specific and actionable — reference real tools, frameworks, and project ideas\n"
+        f"- Ground all advice in the student's actual background above\n"
+        f"- Include salary expectations or market insights where relevant\n"
+        f"- Be encouraging and mentor-like; this student is early in their career journey\n"
+        f"- Keep responses under 450 words for clarity\n"
+        f"- Always end with a 1-line motivational call to action"
     )
 
     full_prompt = f"{system_instruction}\n\nStudent Query: {prompt}\n\nResponse:"

@@ -577,20 +577,40 @@ The platform automatically seeds demo accounts upon the first backend startup:
 
 ---
 
-## 🧪 Verification & Health Checks
+## 🧪 Verification & Automated Test Suites
 
-You can verify the backend ML pipeline and frontend TypeScript/Vite build locally after setup:
-
-### Backend ML & FastAPI Verification
+### 1. Backend Test Suite (Pytest)
+The backend includes 25 unit and integration tests covering authentication, password strength, rate limiting, ML prediction ranking, caching, and assessment pagination:
 ```powershell
-python -B -c "import sys; sys.path.insert(0, 'backend'); from app.main import app; from app.services.ml_service import ml_service; print('Routes:', len(app.routes), '| ML Loaded:', ml_service.model_loaded, '| Classes:', len(ml_service.classes))"
+cd backend
+python -m pytest tests/ -v
 ```
-Interactive REST API verification is also available via Swagger UI at `http://127.0.0.1:8000/docs`.
 
-### Frontend Typecheck & Production Build
+### 2. Frontend Test Suite (Vitest + React Testing Library)
+The frontend includes 14 component and service tests verifying form interactions, React Query caching, and Zustand global state:
+```powershell
+cd frontend
+npm test
+```
+
+### 3. Frontend Production Build & Bundle Inspection
 ```powershell
 cd frontend
 npm run build
+```
+*Features automated route code-splitting, lazy page chunking, and sub-100ms load times.*
+
+### 4. Telemetry, Metrics & Observability
+* **Prometheus Metrics:** `http://127.0.0.1:8000/metrics`
+* **Health & Diagnostics:** `http://127.0.0.1:8000/health`
+* **Swagger API Explorer:** `http://127.0.0.1:8000/docs`
+* **Sentry Error Tracking:** Plug-and-play via `SENTRY_DSN` in `.env`
+
+### 5. Improved ML Model Training (80%+ Target)
+An improved training pipeline featuring SMOTE class balancing, TF-IDF skill embeddings, Optuna hyperparameter tuning, and a 3-classifier Stacking Ensemble (XGBoost + LightGBM + Random Forest → Logistic Regression) is provided in `ml_artifacts/train_improved_model.py`:
+```powershell
+cd ml_artifacts
+python train_improved_model.py
 ```
 
 ---

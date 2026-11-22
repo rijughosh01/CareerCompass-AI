@@ -1,13 +1,29 @@
+"""
+Upgraded FastAPI main.py with:
+- SlowAPI rate limiting
+- Structlog structured logging
+- Sentry error monitoring (optional)
+- Prometheus metrics endpoint
+- Security & request logging middleware
+- CSP / security response headers
+- Improved health endpoint with DB and ML checks
+"""
 import logging
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import structlog
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.database import engine, Base, SessionLocal
 from app.models import User, StudentProfile, Assessment, PredictionDetail
 from app.core.security import get_password_hash
 from app.services.ml_service import ml_service
+from app.middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddleware
+from app.middleware.rate_limit import limiter
 
 # Routers
 from app.routes import (
@@ -19,39 +35,76 @@ from app.routes import (
     roadmaps,
     resumes,
     chatbot,
-    admin
+    admin,
+)
+
+# ---------------------------------------------------------------------------
+# Structlog configuration
+# ---------------------------------------------------------------------------
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.dev.ConsoleRenderer(),
+    ],
+    wrapper_class=structlog.BoundLogger,
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
 )
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("careercompass")
+logger = structlog.get_logger("careercompass")
+
+# ---------------------------------------------------------------------------
+# Optional Sentry Integration
+# ---------------------------------------------------------------------------
+SENTRY_DSN = getattr(settings, "SENTRY_DSN", "")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+            traces_sample_rate=0.1,
+            environment=getattr(settings, "ENVIRONMENT", "development"),
+        )
+        logger.info("sentry_initialized", dsn_configured=True)
+    except Exception as e:
+        logger.warning("sentry_init_failed", error=str(e))
 
 
+# ---------------------------------------------------------------------------
+# DB Initialization & Seeding
+# ---------------------------------------------------------------------------
 def init_db():
-    """Initializes tables and seeds default admin & student accounts if not present."""
+    """Initialises tables and seeds default admin & student accounts if absent."""
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        # 1. Seed Admin
         admin_user = db.query(User).filter(User.email == "admin@careercompass.ai").first()
         if not admin_user:
             admin_user = User(
                 email="admin@careercompass.ai",
                 full_name="System Administrator",
                 hashed_password=get_password_hash("Admin@123456"),
-                role="admin"
+                role="admin",
             )
             db.add(admin_user)
             db.commit()
-            logger.info("Default Admin account seeded: admin@careercompass.ai / Admin@123456")
+            logger.info("seeded_admin", email="admin@careercompass.ai")
 
-        # 2. Seed Demo Student
         demo_student = db.query(User).filter(User.email == "student@careercompass.ai").first()
         if not demo_student:
             demo_student = User(
                 email="student@careercompass.ai",
                 full_name="Alex Morgan",
                 hashed_password=get_password_hash("Student@123456"),
-                role="student"
+                role="student",
             )
             db.add(demo_student)
             db.commit()
@@ -77,12 +130,11 @@ def init_db():
                 past_jobs_internships="Internship at XYZ",
                 achievements="Hackathon Winner",
                 skills_gained="Programming, Data Analysis",
-                willing_to_relocate="Yes"
+                willing_to_relocate="Yes",
             )
             db.add(demo_profile)
             db.commit()
 
-            # Seed an initial baseline assessment
             assessment = Assessment(
                 user_id=demo_student.id,
                 input_snapshot={
@@ -91,71 +143,81 @@ def init_db():
                     "Technical_Skills": "Python, SQL, Machine Learning",
                     "Soft_Skills": "Problem Solving",
                     "Fields_of_Interest": "AI/ML",
-                    "Grade_CGPA_Percentage": 88.5
+                    "Grade_CGPA_Percentage": 88.5,
                 },
                 top_career="Machine Learning Engineer",
-                top_score=98.4
+                top_score=98.4,
             )
             db.add(assessment)
             db.commit()
-            db.refresh(assessment)
-
-            pred1 = PredictionDetail(
-                assessment_id=assessment.id,
-                career="Machine Learning Engineer",
-                score=98.4,
-                rank=1,
-                match_explanation="Strong alignment in Python, Machine Learning certifications, and analytical work orientation."
-            )
-            pred2 = PredictionDetail(
-                assessment_id=assessment.id,
-                career="Data Scientist",
-                score=88.2,
-                rank=2,
-                match_explanation="Solid statistical modeling and SQL capabilities."
-            )
-            pred3 = PredictionDetail(
-                assessment_id=assessment.id,
-                career="AI Researcher",
-                score=82.5,
-                rank=3,
-                match_explanation="Demonstrated mathematical problem-solving aptitude."
-            )
-            db.add_all([pred1, pred2, pred3])
-            db.commit()
-            logger.info("Default Demo Student account seeded: student@careercompass.ai / Student@123456")
-    except Exception as e:
-        logger.error(f"Error during DB initialization: {e}")
-        db.rollback()
+            logger.info("seeded_demo_student", email="student@careercompass.ai")
     finally:
         db.close()
 
 
+# ---------------------------------------------------------------------------
+# Application Lifespan
+# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("app_startup", project=settings.PROJECT_NAME)
     init_db()
+    logger.info(
+        "ml_service_status",
+        loaded=ml_service.model_loaded,
+        classes=len(ml_service.classes),
+    )
     yield
+    logger.info("app_shutdown")
 
 
+# ---------------------------------------------------------------------------
+# FastAPI Application
+# ---------------------------------------------------------------------------
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="AI-Powered Career Guidance and Recommendation System API",
-    version="1.0.0",
+    description=(
+        "AI-powered career guidance platform. "
+        "Predict suitable career paths using an XGBoost ML pipeline."
+    ),
+    version="2.0.0",
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
 )
 
-# CORS Configuration
+# Rate limiter state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---------------------------------------------------------------------------
+# Middleware (order matters: outermost middleware wraps innermost)
+# ---------------------------------------------------------------------------
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
 )
 
-# Mount Routes
+# ---------------------------------------------------------------------------
+# Optional Prometheus Metrics
+# ---------------------------------------------------------------------------
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    logger.info("prometheus_metrics_enabled", endpoint="/metrics")
+except ImportError:
+    logger.warning("prometheus_not_installed", hint="pip install prometheus-fastapi-instrumentator")
+
+
+# ---------------------------------------------------------------------------
+# API Routers
+# ---------------------------------------------------------------------------
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(students.router, prefix=settings.API_V1_STR)
 app.include_router(assessments.router, prefix=settings.API_V1_STR)
@@ -167,25 +229,45 @@ app.include_router(chatbot.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 
 
-@app.get("/")
-def root():
+# ---------------------------------------------------------------------------
+# Health Endpoint
+# ---------------------------------------------------------------------------
+def _check_db() -> bool:
+    try:
+        db = SessionLocal()
+        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.close()
+        return True
+    except Exception:
+        return False
+
+
+@app.get("/health", include_in_schema=False, tags=["Health"])
+def health_check():
+    db_ok = _check_db()
     return {
+        "status": "healthy" if db_ok and ml_service.model_loaded else "degraded",
+        "version": "2.0.0",
         "project": settings.PROJECT_NAME,
-        "version": "1.0.0",
-        "status": "online",
-        "docs": "/docs",
-        "ml_model_loaded": ml_service.model_loaded
+        "ml_model": {
+            "loaded": ml_service.model_loaded,
+            "classes": len(ml_service.classes) if ml_service.model_loaded else 0,
+            "model_name": getattr(ml_service.model_bundle, "get", lambda k, d=None: d)("model_name", "XGBoost")
+            if ml_service.model_bundle
+            else None,
+        },
+        "database": {
+            "connected": db_ok,
+            "engine": settings.DATABASE_URL.split(":")[0],
+        },
     }
 
 
-@app.get(f"{settings.API_V1_STR}/health")
-def health_check():
+@app.get("/", include_in_schema=False)
+def root():
     return {
-        "status": "healthy",
-        "service": "CareerCompass AI Backend",
-        "database": "connected",
-        "ml_model": {
-            "loaded": ml_service.model_loaded,
-            "classes_count": len(ml_service.classes) if ml_service.model_loaded else 0
-        }
+        "message": f"Welcome to {settings.PROJECT_NAME} API v2.0",
+        "docs": "/docs",
+        "health": "/health",
+        "metrics": "/metrics",
     }
